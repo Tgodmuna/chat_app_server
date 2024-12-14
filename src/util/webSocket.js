@@ -24,24 +24,11 @@ function WebSocketServer(wss) {
     if (ActiveConnections.has(recipientID)) {
       ActiveConnections.get(recipientID).send(JSON.stringify(data));
     } else {
-      logger.info(`Recipient ${recipientID} is not online.`);
-    }
-  };
-
-  const handleNewMessage = (userID, recipientID, content, type) => {
-    // Deliver real-time message if recipient is online
-    deliverMessage(recipientID, {
-      sender: userID,
-      content: content,
-      event: "received new message",
-    });
-
-    // Persist the conversation and message
-    createConversation([userID, recipientID], content, type);
-    saveMessage(content, userID, recipientID);
-
-    // Notify the sender their message was sent
-    deliverMessage(userID, {
+        try {
+          const { recipientID, content, type } = JSON.parse(data);
+          handleNewMessage(userID, recipientID, content, type);
+        } catch (err) {
+          logger.error("Error processing message:", err.message);
       event: "messageSent",
       message: "Message successfully sent!",
     });
