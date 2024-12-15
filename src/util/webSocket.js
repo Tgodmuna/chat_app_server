@@ -36,8 +36,9 @@ function WebSocketServer(wss) {
   const deliverMessage = (recipientID, data) => {
     if (ActiveConnections.has(recipientID)) {
       ActiveConnections.get(recipientID).send(JSON.stringify(data));
+      return true;
     } else {
-      logger.info(`Recipient ${recipientID} is not online.`);
+      return null;
     }
   };
 
@@ -54,23 +55,31 @@ function WebSocketServer(wss) {
    * @param {string} content - The content of the message.
    * @param {string} type - The type of the message (e.g. 'text', 'image', 'file').
    */
-  const handleNewMessage = (userID, recipientID, content, type) => {
+  const handleNewMessage = async (userID, recipientID, content, type) => {
+    // Persist the conversation
+    const convoID = await createConversation([userID, recipientID], type)._id;
+
     // Deliver real-time message if recipient is online
-    deliverMessage(recipientID, {
-      sender: userID,
-      content: content,
-      event: "received new message",
-    });
+    if (
+      deliverMessage(recipientID, {
+        sender: userID,
+        content: content,
+        event: "received new message",
+      })
+    ) {
+      // Notify the sender their message was sent
+      deliverMessage(userID, {
+        event: "messageSent",
+        message: "Message successfully sent!",
+      });
+      await saveMessage(content, userID, recipientID, convoID);
+    }
 
-    // Persist the conversation and message
-    createConversation([userID, recipientID], content, type);
-    saveMessage(content, userID, recipientID);
-
-    // Notify the sender their message was sent
-    deliverMessage(userID, {
-      event: "messageSent",
-      message: "Message successfully sent!",
-    });
+    //if message failed to deliver because user was not online.save it to the DB
+    if (!deliverMessage) {
+      await saveMessage(content, userID, recipientID, convoID);
+      return;
+    }
   };
 
   //websocket connection
@@ -124,6 +133,10 @@ function WebSocketServer(wss) {
       event: "userBlocked",
       message: "You have been blocked.",
     });
+  });
+
+  eventEmitter.on("messageRead", (userID) => {
+    deliverMessage(userID, { event: "messageRead", message: "Message read.", status: true });
   });
 }
 
