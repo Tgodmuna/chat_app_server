@@ -125,6 +125,10 @@ function WebSocketServer(wss) {
       message: "You have been blocked.",
     });
   });
+
+  eventEmitter.on("messageRead", (userID) => {
+    deliverMessage(userID, { event: "messageRead", message: "Message read.", status: true });
+  });
 }
 
 module.exports = { WebSocketServer, eventEmitter };
