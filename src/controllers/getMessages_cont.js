@@ -1,6 +1,15 @@
+// @ts-nocheck
 const logger = require("../../logger");
 const MESSAGE = require("../models/message_model");
 
+/**
+ * Retrieves a specific conversation's messages, with pagination support.
+ *
+ * @param {string} conversationID - The ID of the conversation to retrieve messages for.
+ * @param {number} [page=1] - The page number to retrieve (default is 1).
+ * @param {number} [limit=20] - The number of messages to retrieve per page (default is 20).
+ * @returns {Promise<Message[]>} - An array of message objects for the specified conversation.
+ */
 const retrieveSpecificConvMsg = async (conversationID, page = 1, limit = 20) => {
   if (!conversationID && !page && !limit) {
     logger.error("parameters are undefined");
