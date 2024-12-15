@@ -1,7 +1,12 @@
+// @ts-nocheck
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
+    conversationID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversations",
+    },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -27,6 +32,19 @@ const messageSchema = new mongoose.Schema(
     updatedAt: {
       type: Date,
       default: Date.now,
+    },
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+    editedAt: {
+      type: Date,
+      validate: {
+        validator: function (value) {
+          return this.isEdited ? value != null : value == null;
+        },
+        message: "editedAt must only be set if isEdited is true",
+      },
     },
   },
   {

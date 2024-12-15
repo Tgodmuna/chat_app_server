@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const FRIENDSHIP = require("./friendShip_model");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -27,6 +28,7 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     required: true,
+    enum: ["male", "female"],
   },
   age: {
     type: Number,
@@ -76,6 +78,14 @@ const userSchema = new mongoose.Schema({
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: [],
+    },
+  ],
+  friendRequestList: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: [],
     },
   ],
   isOnline: {
@@ -90,5 +100,7 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ email: 1 });
 userSchema.index({ isOnline: 1 });
+userSchema.index({ lastSeen: 1 });
+userSchema.index({ friends: 1 });
 
 module.exports = mongoose.model("User", userSchema);
