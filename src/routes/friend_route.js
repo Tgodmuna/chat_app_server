@@ -3,6 +3,7 @@ const tryCatch_mw = require("../middleware/tryCatch_mw");
 const router = require("express").Router();
 const FRIENDSHIP = require("../models/friendShip_model");
 const USER = require("../models/user_model");
+const { eventEmitter } = require("../util/webSocket");
 
 router.post(
   "/request",
@@ -17,7 +18,12 @@ router.post(
       ],
     });
 
-    if (existingRelationship) {
+    //check for already existing request in the recipient friendshipRequestList.
+    const user = await USER.findOne({ _id: recipientID }).select({
+      friendRequestList: 1,
+    });
+
+    if (existingRelationship && user?.friendRequestList.includes(requesterID)) {
       res.status(400).send("friendship request already exists");
     }
 
@@ -27,19 +33,25 @@ router.post(
       requester: requesterID,
       status: "pending",
     });
-
     await new_request.save();
 
+    //add the requester to the recipient request list
+    user?.friendRequestList.push(requesterID);
+    await user?.save();
+
+    eventEmitter.on("friendRequestSent", requesterID);
     return res.status(200).send("request sent succesfully");
   })
 );
 
+//accept route
 router.post(
   "/accept",
   tryCatch_mw(async (req, res) => {
     const { requesterID } = req.body;
     const recipientID = req.user._id;
 
+    //check for already existing friendship.
     const friendship = await FRIENDSHIP.findOne({
       $or: [
         { requester: requesterID, recipient: recipientID, status: "pending" },
@@ -50,12 +62,23 @@ router.post(
     if (!friendship) return res.status(404).send("no such friendship");
 
     friendship.status = "accepted";
+    await friendship.save();
+
+    //since the friendship has changed from pending to accepted,
+    //remove the requester from the recipient list
+    await USER.findOneAndUpdate(
+      { _id: recipientID },
+      { $pull: { friendRequestList: requesterID } }
+    );
 
     //update the both requester and recipient friend list.
     await USER.findOneAndUpdate({ _id: recipientID }, { friends: { $push: requesterID } });
 
     await USER.findOneAndUpdate({ _id: requesterID }, { friends: { $push: { recipientID } } });
 
+    eventEmitter.on("friendRequestAccepted", recipientID);
+
+    // After accepting friendship
     return res.status(200).send("friendship accepted");
   })
 );
