@@ -3,6 +3,10 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
+    conversationID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversations",
+    },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
