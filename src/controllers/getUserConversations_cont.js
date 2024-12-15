@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { isValidObjectId } = require("mongoose");
 const CONVERSATION = require("../models/conversation model_model");
 const logger = require("../../logger");
