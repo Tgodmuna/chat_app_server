@@ -1,6 +1,14 @@
 const { isValidObjectId } = require("mongoose");
 const CONVERSATION = require("../models/conversation model_model");
 const logger = require("../../logger");
+
+/**
+ * Retrieves user conversations from the database.
+ *
+ * @param {string} participant - The ID of the participant whose conversations should be retrieved.
+ * @returns {Promise<Conversation[]>} - An array of conversation objects.
+ * @throws {Error} - If the provided participant ID is not a valid MongoDB ObjectID.
+ */
 async function retrieveUSerConversations(participant) {
   try {
     if (participant && isValidObjectId(participant)) {
