@@ -67,6 +67,17 @@ router
         data: User.friends,
       });
     })
+  )
+  .get(
+    "friend-requests",
+    tryCatch_mw(async (req, res) => {
+      const requests = USER.findOne({ _id: req.user._id }).populate(
+        "friendRequestList",
+        "-password -isOnline -updatedAt -createdAt "
+      );
+
+      res.status(200).json({ requests });
+    })
   );
 
 module.exports = router;
