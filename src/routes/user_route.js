@@ -4,6 +4,8 @@ const authorised = require("../middleware/authorisation_mw");
 const getUser_mw = require("../middleware/getUser_mw");
 const profileUpdate_cont = require("../controllers/profileUpdate_cont");
 const verifyToken_mw = require("../middleware/verifyToken_mw");
+const USER = require("../models/user_model");
+const _ = require("lodash");
 
 //get the user profile by id
 router
