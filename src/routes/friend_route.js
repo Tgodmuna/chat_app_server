@@ -111,3 +111,31 @@ router.post(
     return res.status(200).send("blocked user successful");
   })
 );
+
+router.patch(
+  "rejected",
+  tryCatch_mw(async (req, res) => {
+    const { requesterID } = req.body;
+    const recipientID = req.user._id;
+
+    //modify the relationship.
+    const friendship = await FRIENDSHIP.findOne({
+      $or: [
+        { requester: requesterID, recipient: recipientID, status: "pending" },
+        { requester: recipientID, recipient: requesterID, status: "pending" },
+      ],
+    });
+
+    //modify the user friend request list.
+    await USER.findOneAndUpdate(
+      { _id: recipientID },
+      { $pull: { friendRequestList: requesterID } }
+    );
+    //notify the requester that their request was rejected.
+    eventEmitter.on("friendRequestRejected", requesterID);
+
+    return res.status(200).send("friendship request rejected");
+  })
+);
+
+exports = router;
