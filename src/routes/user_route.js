@@ -1,3 +1,4 @@
+// @ts-nocheck
 const router = require("express").Router();
 const tryCatch_mw = require("../middleware/tryCatch_mw");
 const authorised = require("../middleware/authorisation_mw");
