@@ -6,6 +6,11 @@ const profileUpdate_cont = require("../controllers/profileUpdate_cont");
 const verifyToken_mw = require("../middleware/verifyToken_mw");
 const USER = require("../models/user_model");
 const _ = require("lodash");
+const multer = require("multer");
+const uploadMW = require("../middleware/upload_mw");
+const path = require("path");
+const logger = require("../../logger");
+const jwt = require("jsonwebtoken");
 
 //get the user profile by id
 router
@@ -30,6 +35,25 @@ router
       return res.status(200).json({ updated });
     }),
   ]);
+
+//upload profile picture
+router.post(
+  "/upload",
+  uploadMW,
+  tryCatch_mw(async (err, req, res) => {
+    logger.info("file uploaded successfully");
+    const filePath = path.join(__dirname, "../../upload", req.file.filename);
+
+    //update the user profileImage path with the file path
+    const user = USER.findByIdAndUpdate(
+      req.user_id,
+      { $set: { profilePicture: filePath } },
+      { new: true }
+    );
+
+    res.status(200).json({ message: " uploaded successfully", user });
+  })
+);
 
 router
   .get(
