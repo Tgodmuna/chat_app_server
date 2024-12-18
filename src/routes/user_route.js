@@ -16,7 +16,7 @@ router
     }),
   ]) // update user info
 
-  .put("/:id", [
+  .put("/update/:id", [
     tryCatch_mw(async (req, res) => {
       const id = req.params.id;
 
