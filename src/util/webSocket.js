@@ -138,6 +138,21 @@ function WebSocketServer(wss) {
   eventEmitter.on("messageRead", (userID) => {
     deliverMessage(userID, { event: "messageRead", message: "Message read.", status: true });
   });
+
+  eventEmitter.on("messageDelivered", (userID) => {
+    deliverMessage(userID, {
+      event: "messageDelivered",
+      message: "Message delivered.",
+      status: true,
+    });
+  } );
+  
+  eventEmitter.on("friendRequestRejected", (requesterID) => {
+    deliverMessage(requesterID, {
+      event: "rejected",
+      message: "Your friend request was rejected.",
+    });
+  });
 }
 
 module.exports = { WebSocketServer, eventEmitter };
