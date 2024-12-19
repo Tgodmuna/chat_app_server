@@ -56,6 +56,30 @@ router.post(
   })
 );
 
+//get user profile picture
+router.get("/profile/file", (req, res) => {
+  console.log(__dirname);
+  const filename = req.query.file;
+
+  const filepath = path.join(__dirname, "../../upload", filename);
+
+  console.log(filepath);
+
+  if (!filename) return res.status(400);
+
+  res.sendFile(filepath, (err) => {
+    if (err) {
+      res.status(404).send("file not found");
+      logger.error("could not send file to user", err);
+      return;
+    }
+    // res.status(200).send("file send successfully");
+    logger.info("file sent to the user");
+    return;
+  });
+});
+
+//get user friendlist
 router
   .get(
     "/friends-list",
