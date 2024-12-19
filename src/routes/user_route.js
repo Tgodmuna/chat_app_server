@@ -39,7 +39,7 @@ router
 
 //upload profile picture
 router.post(
-  "/upload",
+  "profile/upload",
   uploadMW,
   tryCatch_mw(async (err, req, res) => {
     logger.info("file uploaded successfully");
