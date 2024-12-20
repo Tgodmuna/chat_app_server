@@ -14,17 +14,20 @@ const token_Blacklist = require("../util/token_Blacklist");
 router.post("/register", [
   validateBody_mw,
   tryCatch_mw(async (req, res) => {
-    if ((await register(req.body)) === "exisiting_user") {
-      logger.warn("found an existing account,terminating registration....");
-      return res.status(400).send("already existing account,sign in");
+    // Check if user already exists
+    const registrationResult = await register(req.body);
+
+    if (registrationResult === "existing_user") {
+      logger.warn("found an existing account, terminating registration....");
+      return res.status(400).send("already existing account, sign in");
     }
 
-    //if not, proceed with the registration.
-    const user = await register(req.body);
+    // Registration was successful
     logger.info("registration successful");
-    return res.status(201).json({ user: user, message: "registered successfully" });
+    return res.status(201).json({ user: registrationResult, message: "registered successfully" });
   }),
 ]);
+
 
 //login route
 router.post(
