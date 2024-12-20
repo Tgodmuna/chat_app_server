@@ -1,12 +1,15 @@
 const joi = require("joi");
 const { getNames } = require("country-list");
+const logger = require("../../logger");
 
 const country = getNames();
 
 module.exports = function validatebody(req, res, next) {
   const { error } = bodySchema.validate(req.body);
+  logger.debug("request body", req.body);
 
   if (error) {
+    logger.error("validation failed", error);
     return res.status(400).send(error.details[0].message);
   }
   next();
@@ -14,13 +17,8 @@ module.exports = function validatebody(req, res, next) {
 
 const bodySchema = joi.object({
   name: joi.string().min(6).required().trim(true),
-  email: joi.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/).required,
-  password: joi
-    .string()
-    .min(8)
-    .required()
-    .trim(true)
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/),
+  email: joi.string().required(),
+  password: joi.string().min(8).required().trim(true),
   location: joi
     .object({
       city: joi.string().min(2).required(),
