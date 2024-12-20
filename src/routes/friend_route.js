@@ -138,4 +138,4 @@ router.patch(
   })
 );
 
-exports = router;
+module.exports = router;
