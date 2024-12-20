@@ -1,14 +1,14 @@
 const winston = require("winston");
 
 const logger = winston.createLogger({
-  level: "warn",
+  level: "info",
   format: winston.format.combine(
     winston.format.printf((value) => {
-      return `{
+      return `
         message: ${value.message},
         level: ${value.level},
         time: ${winston.format.timestamp()},
-      }`;
+      `;
     }),
     winston.format.json(),
     winston.format.timestamp(),
