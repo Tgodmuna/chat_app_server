@@ -11,12 +11,20 @@ const path = require("path");
  * @param {Object} res - The Express response object.
  * @param {Function} next - The next middleware function to be called.
  */
-const fileUpload = ( req, res, next ) => {
-    //configuration for storage type
+const fileUpload = (req, res, next) => {
+  //configuration for storage type
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadPath = path.join(__dirname, "../../upload/");
-      cb(null, uploadPath);
+      const uploadPath = path.join(__dirname, "../../public");
+
+      if (
+        file.mimetype === "image/jpeg" ||
+        file.mimetype === "image/png" ||
+        file.mimetype === "image/jpg"
+      )
+        cb(null, path.join(uploadPath, "/profile_pic"));
+
+      cb(null, path.join(uploadPath, "/files"));
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
