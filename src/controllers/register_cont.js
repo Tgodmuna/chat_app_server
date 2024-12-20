@@ -1,3 +1,4 @@
+const logger = require("../../logger");
 const USER = require("../models/user_model");
 const bcrypt = require("bcrypt");
 
@@ -6,19 +7,35 @@ const register = async (body) => {
 
   let { email, password, name, phone, location, gender, age, status, role } = body;
 
-  // check if user already registered
+  // Debug input
+  logger.debug("Received body:", body);
 
-  let user = await USER.findOne({ $or: [{ email }, { phone }] });
+  // Check if user already registered
+  let existing_user = await USER.findOne({ $or: [{ email }, { phone }] });
 
-  if (user) return "exisiting_user";
+  if (existing_user) {
+    return "existing_user";
+  }
 
-  //if not, proceed with the registration.
+  // If not, proceed with the registration.
   const salt = await bcrypt.genSalt(10);
   password = await bcrypt.hash(password, salt);
 
-  user = await new USER({ name, email, phone, password, age, location, gender, status, role });
+  let newUser = new USER({
+    name,
+    email,
+    phone,
+    password,
+    age,
+    location,
+    gender,
+    status,
+    role,
+  });
 
-  return user.save();
+  await newUser.save();
+
+  return newUser;
 };
 
 module.exports = register;
