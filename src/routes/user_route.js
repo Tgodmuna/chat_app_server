@@ -43,7 +43,7 @@ router.post(
   uploadMW,
   tryCatch_mw(async (err, req, res) => {
     logger.info("file uploaded successfully");
-    const filePath = path.join(__dirname, "../../upload", req.file.filename);
+    const filePath = path.join(__dirname, "../../public/profile_pic/", req.file.filename);
 
     //update the user profileImage path with the file path
     const user = USER.findByIdAndUpdate(
