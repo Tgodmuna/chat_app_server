@@ -1,7 +1,7 @@
 // @ts-nocheck
 const jwt = require("jsonwebtoken");
-const logger = require("../logger");
-const updateUserCollection = require("./updateUser_collection");
+const logger = require("../../logger");
+const updateUserCollection = require("../util/updateUserCol");
 const saveMessage = require("./logMessage");
 const createConversation = require("./logConversation");
 const EventEmitter = require("events");
@@ -145,8 +145,8 @@ function WebSocketServer(wss) {
       message: "Message delivered.",
       status: true,
     });
-  } );
-  
+  });
+
   eventEmitter.on("friendRequestRejected", (requesterID) => {
     deliverMessage(requesterID, {
       event: "rejected",
