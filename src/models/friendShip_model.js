@@ -5,7 +5,7 @@ const friendShip_schema = new mongoose.Schema({
   requester: { type: mongoose.Types.ObjectId, ref: "User" },
   status: {
     type: String,
-    enum: ["pending", "accepted", "rejected", "blocked"],
+    enum: ["pending", "accepted", "rejected", "blocked","unfriend"],
     default: "pending",
   },
   time: { type: Date, default: Date.now() },
