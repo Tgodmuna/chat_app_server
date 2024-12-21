@@ -12,10 +12,11 @@ const uploadMW = require("../middleware/upload_mw");
 const path = require("path");
 const logger = require("../../logger");
 const jwt = require("jsonwebtoken");
+const FIRENDSHIP = require("../models/friendShip_model");
 
 //get the user profile by id
 router
-  .get("/:id", [
+  .get("/details/:id", [
     getUser_mw,
     tryCatch_mw((req, res) => {
       const user = req.user;
@@ -27,10 +28,15 @@ router
   .put("/update/:id", [
     tryCatch_mw(async (req, res) => {
       const id = req.params.id;
+      console.log("idParam", id);
+      console.log("body:", req.body);
 
-      const updated = await profileUpdate_cont(id, req.body);
+      if (!id) return res.status(400).json("no id provided");
+      if (!req.body.data) return res.status(400).json("no payload specified");
 
-      if (!updated) return res.status(400).send("user not found, cant update");
+      const updated = await profileUpdate_cont(id, req.body.data);
+
+      if (!updated) return res.status(400).json("error coccured cannot proceed");
 
       //return the updated profile
       return res.status(200).json({ updated });
@@ -57,49 +63,54 @@ router.post(
 );
 
 //get user profile picture
-router.get("/profile/file", (req, res) => {
+//take a query like this: ?file=filename
+router.get("/profile/pic", (req, res) => {
   console.log(__dirname);
   const filename = req.query.file;
 
-  const filepath = path.join(__dirname, "../../upload", filename);
+  const filepath = path.join(__dirname, "../../public/profile_pic/", filename);
 
   console.log(filepath);
 
-  if (!filename) return res.status(400);
+  if (!filename) return res.status(400).json("invalid file filename");
 
   res.sendFile(filepath, (err) => {
     if (err) {
-      res.status(404).send("file not found");
-      logger.error("could not send file to user", err);
+      res.status(404).json("file not found");
+      logger.error("could not json file to user", err);
       return;
     }
-    // res.status(200).send("file send successfully");
+    // res.status(200).json("file json successfully");
     logger.info("file sent to the user");
     return;
   });
 });
 
 //get user friendlist
+router.get(
+  "/friends_list",
+  tryCatch_mw(async (req, res) => {
+    const user = await USER.findOne({ _id: req.user._id });
+
+    //get all the user's friendlist
+    let friends = _.pick(user?.populate("friends"), [
+      "name,phone,location,gender,status,profilePicture,bio,interest",
+      "isOnline",
+      "lastSeen",
+    ]);
+
+    return res.status(200).json({ message: "retreived successfully", data: friends });
+  })
+);
+
+//remove a friend from the list
 router
-  .get(
-    "/friends-list",
-    tryCatch_mw(async (req, res) => {
-      const user = await USER.findOne({ _id: req.user._id });
-
-      //get all the user's friendlist
-      let friends = _.pick(user?.populate("friends"), [
-        "name,phone,location,gender,status,profilePicture,bio,interest",
-        "isOnline",
-        "lastSeen",
-      ]);
-
-      return res.status(200).json({ message: "retreived successfully", data: friends });
-    })
-  )
   .patch(
-    "friend-list/remove/:friend_id",
+    `/friend_list/unfriend/:friend_id`,
     tryCatch_mw(async (req, res) => {
       const friend_id = req.params.friend_id;
+
+      if (!friend_id) return res.status(404).json("no friend id provided");
 
       const User = await USER.findOneAndUpdate(
         { _id: req.user_id },
@@ -108,8 +119,22 @@ router
       ).populate("friends");
 
       if (!User) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "friend not found, could not unfriend" });
       }
+
+      //update the friendship collection immediately to tally with the current change made.
+      const friendShip = await FIRENDSHIP.findOne({
+        $or: [
+          { recipient: friend_id, requester: req.user_id, status: "accepted" },
+          { requester: friend_id, recipient: req.user_id, status: "accepted" },
+        ],
+      });
+
+      if (!friendShip) return res.status(404).json("no such friendship found");
+
+      friendShip.status = "unfriend";
+
+      await friendShip.save();
 
       return res.status(200).json({
         message: "Friend removed successfully",
@@ -118,14 +143,16 @@ router
     })
   )
   .get(
-    "friend-requests",
+    "/friend_requests",
     tryCatch_mw(async (req, res) => {
-      const requests = USER.findOne({ _id: req.user._id }).populate(
-        "friendRequestList",
-        "-password -isOnline -updatedAt -createdAt "
-      );
+      const requests = await USER.findOne({ _id: req.user._id })
+        .select("friendRequestList")
+        .populate("friendRequestList");
 
-      res.status(200).json({ requests });
+      if (!requests)
+        return res.status(404).send("invalid user hence, could not retrieve friend request");
+
+      return res.status(200).json({ requests });
     })
   );
 
