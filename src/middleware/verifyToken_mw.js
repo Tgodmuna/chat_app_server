@@ -1,7 +1,8 @@
+// @ts-nocheck
 const jwt = require("jsonwebtoken");
-const blackList = require("../util/token_Blacklist");
+const BlackList = require("../models/blackList_model");
 
-module.exports = function verifyToken_mw(req, res, next) {
+module.exports = async function verifyToken_mw(req, res, next) {
   const token = req.header("x-auth-token");
 
   if (!token) {
@@ -9,17 +10,24 @@ module.exports = function verifyToken_mw(req, res, next) {
   }
 
   //check if the token has been blacklisted
-  if (blackList().has(token)) {
-    return res.status(401).send("token has been invalidated");
+  if (await BlackList.findOne({ token })) {
+    return res.status(401).send("token has been invalidated, sign in");
   }
 
   try {
-    // @ts-ignore
-    const decoded = jwt.verify(token, process.env.jwtsecret);
+    const verified = jwt.verify(token, process.env.jwtsecret);
+    if (!verified) {
+      return res.status(401).send("expired token");
+    }
+
+    const decoded = jwt.decode(token, process.env.jwtsecret);
+    if (!decoded) {
+      return res.status(500).send("invalid token");
+    }
+
     req.user = decoded;
     next();
   } catch (err) {
-    res.status(400).send("Invalid token.");
     next(err);
   }
 };
