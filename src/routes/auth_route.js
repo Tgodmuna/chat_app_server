@@ -56,6 +56,8 @@ router.post(
     res.header("x-auth-token", token).status(200).json({ message: "login successful", user: user });
 
     logger.info("login successful");
+
+    return;
   })
 );
 
