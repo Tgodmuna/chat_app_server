@@ -9,6 +9,7 @@ const login_cont = require("../controllers/login_cont");
 const verifyToken_mw = require("../middleware/verifyToken_mw");
 const jwt = require("jsonwebtoken");
 const token_Blacklist = require("../util/token_Blacklist");
+const BlackList = require("../models/blackList_model");
 
 //register route
 router.post("/register", [
@@ -27,7 +28,6 @@ router.post("/register", [
     return res.status(201).json({ user: registrationResult, message: "registered successfully" });
   }),
 ]);
-
 
 //login route
 router.post(
@@ -64,7 +64,16 @@ router.post(
 //logout route
 router.post("/logout", [
   verifyToken_mw,
-  tryCatch_mw((_, res) => {
+  tryCatch_mw(async (req, res) => {
+    //black the list the token immediately
+    let blacklisted = await new BlackList({ token: req.header("x-auth-token") }).save();
+
+    if (!blacklisted) {
+      logger.error("error in blacklisting a token");
+      return;
+    }
+
+    logger.info("user logged out");
     return res.status(200).send("logout successful");
   }),
 ]);
@@ -72,17 +81,14 @@ router.post("/logout", [
 //Get the currently authenticated user's profile (using JWT)
 router.get(
   "/me",
-  tryCatch_mw((req, res) => {
+  verifyToken_mw,
+  tryCatch_mw(async (req, res) => {
     const token = req.header("x-auth-token");
 
-    const invalidated = token_Blacklist().has(token);
-
-    if (invalidated) return res.status(401).send("user can not be validated");
-
-    const decoded = jwt.verify(token, process.env.jwtsecret);
-    const user = decoded;
+    const user = req.user;
 
     res.status(200).json({ user });
+    return;
   })
 );
 
