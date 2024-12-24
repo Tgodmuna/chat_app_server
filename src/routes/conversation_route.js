@@ -30,7 +30,7 @@ router.delete(
       return;
     }
 
-    await CONVERSATION.findByIdAndDelete({ conversationID });
+    await CONVERSATION.findByIdAndDelete(conversationID);
     await MESSAGE.deleteMany({
       conversationID,
     });
