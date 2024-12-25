@@ -35,8 +35,13 @@ app.use(
 app.use(Error_mw);
 
 // HTTP & WebSocket Server
-const server = createServer(app);
-const wss = new WebSocket.Server({ server });
+const server = http.createServer(app);
+const wss = new WebSocket.Server({
+  server,
+  headers: {
+    "Access-Control-Allow-Origin": "*",
+  },
+});
 
 WebSocketServer(wss);
 
