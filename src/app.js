@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 require("./config/db")();
 const WebSocket = require("ws");
-const { createServer } = require("http");
+const http = require("http");
 const jwt = require("jsonwebtoken");
 const logger = require("../logger");
 
@@ -28,8 +28,7 @@ app.use(
   "/api/conversations",
   verifyToken_mw,
   authorisation_mw,
-  require( "../src/routes/conversation_route.js" )
-  
+  require("../src/routes/conversation_route.js")
 );
 
 app.use(Error_mw);
