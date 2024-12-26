@@ -1,10 +1,9 @@
-// @ts-nocheck
 const jwt = require("jsonwebtoken");
-const logger = require("../../logger");
-const updateUserCollection = require("../util/updateUserCol");
 const saveMessage = require("./logMessage");
 const createConversation = require("./logConversation");
 const EventEmitter = require("events");
+const logger = require("../../logger");
+const updateUser_collection = require("./updateUserCol");
 
 const eventEmitter = new EventEmitter();
 
@@ -24,7 +23,12 @@ function WebSocketServer(wss) {
       logger.error("Missing token, cannot establish WebSocket connection.");
       throw new Error("Missing token");
     }
-    return jwt.verify(token, process.env.jwtsecret);
+    const secret = process.env.jwtsecret;
+    if (!secret) {
+      logger.error("JWT secret is not defined.");
+      throw new Error("JWT secret is not defined");
+    }
+    return jwt.verify(token, secret);
   };
 
   /**
@@ -57,7 +61,8 @@ function WebSocketServer(wss) {
    */
   const handleNewMessage = async (userID, recipientID, content, type) => {
     // Persist the conversation
-    const convoID = await createConversation([userID, recipientID], type)._id;
+    const conversation = await createConversation([userID, recipientID], type);
+    const convoID = conversation._id;
 
     // Deliver real-time message if recipient is online
     if (
@@ -104,7 +109,7 @@ function WebSocketServer(wss) {
 
       socket.on("close", () => {
         ActiveConnections.delete(userID);
-        updateUserCollection({ lastSeen: Date.now() }, userID);
+        updateUser_collection({ lastSeen: Date.now() }, userID);
         logger.info(`User ${userID} disconnected.`);
       });
     } catch (err) {
@@ -137,21 +142,6 @@ function WebSocketServer(wss) {
 
   eventEmitter.on("messageRead", (userID) => {
     deliverMessage(userID, { event: "messageRead", message: "Message read.", status: true });
-  });
-
-  eventEmitter.on("messageDelivered", (userID) => {
-    deliverMessage(userID, {
-      event: "messageDelivered",
-      message: "Message delivered.",
-      status: true,
-    });
-  });
-
-  eventEmitter.on("friendRequestRejected", (requesterID) => {
-    deliverMessage(requesterID, {
-      event: "rejected",
-      message: "Your friend request was rejected.",
-    });
   });
 }
 

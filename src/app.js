@@ -2,7 +2,6 @@
 require("dotenv").config();
 const express = require("express");
 require("./config/db")();
-const WebSocket = require("ws");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const logger = require("../logger");
@@ -32,16 +31,5 @@ app.use(
 );
 
 app.use(Error_mw);
-
-// HTTP & WebSocket Server
-const server = http.createServer(app);
-const wss = new WebSocket.Server({
-  server,
-  headers: {
-    "Access-Control-Allow-Origin": "*",
-  },
-});
-
-WebSocketServer(wss);
 
 module.exports = app;
