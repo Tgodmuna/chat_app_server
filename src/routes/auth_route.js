@@ -51,7 +51,7 @@ router.post(
 
     //generate token
     // @ts-ignore
-    const token = jwt.sign(payload, process.env.jwtsecret, { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.jwtsecret, { expiresIn: "24h" });
 
     res.header("x-auth-token", token).status(200).json({ message: "login successful", user: user });
 
