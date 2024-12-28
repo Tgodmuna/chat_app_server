@@ -4,115 +4,45 @@ const createConversation = require("./logConversation");
 const EventEmitter = require("events");
 const logger = require("../../logger");
 const updateUser_collection = require("./updateUserCol");
-
+const validateToken = require("./validateToken");
+const deliverMessage = require("./deliverMessage");
+const handleNewMessage = require("./handleNewMessage");
 const eventEmitter = new EventEmitter();
 
 function WebSocketServer(wss) {
   const ActiveConnections = new Map();
-
-  //token validator
-  /**
-   * Validates the provided JWT token and returns the decoded payload.
-   *
-   * @param {string} token - The JWT token to be validated.
-   * @returns {object} The decoded payload of the JWT token.
-   * @throws {Error} If the token is missing or invalid.
-   */
-  const validateToken = (token) => {
-    if (!token) {
-      logger.error("Missing token, cannot establish WebSocket connection.");
-      throw new Error("Missing token");
-    }
-    const secret = process.env.jwtsecret;
-    if (!secret) {
-      logger.error("JWT secret is not defined.");
-      throw new Error("JWT secret is not defined");
-    }
-    return jwt.verify(token, secret);
-  };
-
-  /**
-   * Delivers a message to the recipient if they are currently connected to the WebSocket server.
-   *
-   * @param {string} recipientID - The ID of the recipient to whom the message should be delivered.
-   * @param {object} data - The message data to be delivered.
-   */
-  const deliverMessage = (recipientID, data) => {
-    if (ActiveConnections.has(recipientID)) {
-      ActiveConnections.get(recipientID).send(JSON.stringify(data));
-      return true;
-    } else {
-      return null;
-    }
-  };
-
-  /**
-   * Handles the processing of a new message received over the WebSocket connection.
-   *
-   * This function is responsible for:
-   * 1. Delivering the real-time message to the recipient if they are online.
-   * 2. Persisting the conversation and message in the database.
-   * 3. Notifying the sender that their message was successfully sent.
-   *
-   * @param {string} userID - The ID of the user who sent the message.
-   * @param {string} recipientID - The ID of the recipient of the message.
-   * @param {string} content - The content of the message.
-   * @param {string} type - The type of the message (e.g. 'text', 'image', 'file').
-   */
-  const handleNewMessage = async (userID, recipientID, content, type) => {
-    // Persist the conversation
-    const conversation = await createConversation([userID, recipientID], type);
-    const convoID = conversation._id;
-
-    // Deliver real-time message if recipient is online
-    if (
-      deliverMessage(recipientID, {
-        sender: userID,
-        content: content,
-        event: "received new message",
-      })
-    ) {
-      // Notify the sender their message was sent
-      deliverMessage(userID, {
-        event: "messageSent",
-        message: "Message successfully sent!",
-      });
-      await saveMessage(content, userID, recipientID, convoID);
-    }
-
-    //if message failed to deliver because user was not online.save it to the DB
-    if (!deliverMessage) {
-      await saveMessage(content, userID, recipientID, convoID);
-      return;
-    }
-  };
 
   //websocket connection
   wss.on("connection", (socket, req) => {
     try {
       const token = req.headers["x-auth-token"];
       const decoded = validateToken(token);
+
       const userID = decoded._id;
 
       ActiveConnections.set(userID, socket);
 
       logger.info(`User ${userID} connected.`);
 
-      socket.on("message", (data) => {
+      socket.on("message", async (data) => {
         try {
           const { recipientID, content, type } = JSON.parse(data);
-          handleNewMessage(userID, recipientID, content, type);
+          console.log("message as data", recipientID, content, type);
+
+          await handleNewMessage(userID, recipientID, content, type, ActiveConnections);
         } catch (err) {
-          logger.error("Error processing message:", err.message);
+          socket.send(err.message);
+          logger.error("Error processing message:", err);
         }
       });
 
       socket.on("close", () => {
         ActiveConnections.delete(userID);
-        updateUser_collection({ lastSeen: Date.now() }, userID);
+        updateUser_collection("lastSeen", Date.now(), userID);
         logger.info(`User ${userID} disconnected.`);
       });
     } catch (err) {
+      socket.send(JSON.stringify({ event: "error", message: err.message }));
       logger.error(err.message);
       socket.terminate();
     }
@@ -120,28 +50,44 @@ function WebSocketServer(wss) {
 
   // Event Listeners for Other Notifications
   eventEmitter.on("friendRequestSent", (recipientID) => {
-    deliverMessage(recipientID, {
-      event: "friendRequestSent",
-      message: "You have a new friend request!",
-    });
+    deliverMessage(
+      recipientID,
+      {
+        event: "friendRequestSent",
+        message: "You have a new friend request!",
+      },
+      ActiveConnections
+    );
   });
 
   eventEmitter.on("friendRequestAccepted", (requesterID) => {
-    deliverMessage(requesterID, {
-      event: "friendRequestAccepted",
-      message: "Your friend request was accepted!",
-    });
+    deliverMessage(
+      requesterID,
+      {
+        event: "friendRequestAccepted",
+        message: "Your friend request was accepted!",
+      },
+      ActiveConnections
+    );
   });
 
   eventEmitter.on("userBlocked", (userID) => {
-    deliverMessage(userID, {
-      event: "userBlocked",
-      message: "You have been blocked.",
-    });
+    deliverMessage(
+      userID,
+      {
+        event: "userBlocked",
+        message: "You have been blocked.",
+      },
+      ActiveConnections
+    );
   });
 
   eventEmitter.on("messageRead", (userID) => {
-    deliverMessage(userID, { event: "messageRead", message: "Message read.", status: true });
+    deliverMessage(
+      userID,
+      { event: "messageRead", message: "Message read.", status: true },
+      ActiveConnections
+    );
   });
 }
 
