@@ -1,4 +1,4 @@
-const CONVERSATION = require("../models/conversation model_model");
+const CONVERSATION = require("../models/conversation_model");
 const MESSAGE = require("../models/message_model");
 const retrieveUSerConversations = require("../controllers/getUserConversations_cont");
 
