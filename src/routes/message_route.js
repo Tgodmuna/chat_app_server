@@ -4,7 +4,7 @@ const tryCatch_mw = require("../middleware/tryCatch_mw");
 const SetMessageStatus = require("../controllers/setMessageStatus");
 const deleteMessage = require("../controllers/deleteMessage_cont");
 const MESSAGE = require("../models/message_model");
-const CONVERSATION = require("../models/conversation model_model");
+const CONVERSATION = require("../models/conversation_model");
 
 const router = require("express").Router();
 
