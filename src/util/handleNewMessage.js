@@ -18,6 +18,11 @@ const saveMessage = require("./logMessage");
 const handleNewMessage = async (userID, recipientID, content, type, ActiveConnections) => {
   // Persist the conversation
   const conversation = await createConversation([userID, recipientID], type);
+
+  if (!conversation) {
+    throw new Error("Failed to create conversation,something went wrong");
+  }
+
   const conversation_ID = conversation?._id;
 
   // Deliver real-time message if recipient is online
@@ -42,7 +47,10 @@ const handleNewMessage = async (userID, recipientID, content, type, ActiveConnec
       },
       ActiveConnections
     );
+
+    //persist the message also
     await saveMessage(content, userID, recipientID, conversation_ID);
+
     return;
   }
 
