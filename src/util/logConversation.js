@@ -2,37 +2,63 @@
 const logger = require("../../logger");
 const CONVERSATIONS = require("../models/conversation_model");
 
-async function createConversation(participants, message, type) {
-  try {
-    if (!Array.isArray(participants)) throw new Error("participants must be an array");
+module.exports = async function createConversation(participants, message, type) {
+  if (!Array.isArray(participants)) {
+    process.env.NODE_ENV === "development" && logger.debug("participants must be an array:");
 
-    //check for existing conversation before creating another one
+    throw new Error("participants must be an array");
+  }
+
+  if (!participants.length === 0) {
+    process.env.NODE_ENV === "development" && logger.debug("participants array must not be empty:");
+
+    throw new Error("participants array must not be empty");
+  }
+
+  const uniqueParticipants = [...new Set(participants.map(String))];
+
+  if (!uniqueParticipants) {
+    console.error("IDs provided must be unique", uniqueParticipants);
+    return null;
+  }
+
+  if (uniqueParticipants.length < 2) {
+    process.env.NODE_ENV === "development" &&
+      console.error("Participants must include at least two IDs.", uniqueParticipants);
+
+    return null;
+  }
+
+  try {
+    // Check for existing conversation before creating another one
     const existingConversation = await CONVERSATIONS.findOne({
-      $or: [
-        { participants: [participants.userID, participants.recipientID], type: "direct" },
-        { participants: [participants.recipientID, participants.userID], type: "direct" },
-      ],
+      participants: { $all: uniqueParticipants },
+      type: "direct",
     });
 
-    if (existingConversation) return existingConversation;
-    process.env.NODE_ENV = "development" && logger.debug("existing conversation:",existingConversation);
+    if (existingConversation) {
+      process.env.NODE_ENV === "development" &&
+        console.log("Found an existing conversation:", existingConversation);
+
+      return existingConversation;
+    }
+    process.env.NODE_ENV === "development" &&
+      console.log("Creating new conversation with participants:", uniqueParticipants);
 
     const newConversation = new CONVERSATIONS({
-      participants,
-      type,
+      participants: uniqueParticipants,
+      type: type || "direct",
       lastMessage: null,
     });
 
     await newConversation.save();
-    process.env.NODE_ENV = "development" && logger.debug("conversation created successfully");
 
     process.env.NODE_ENV === "development" &&
-      logger.debug("new created conversation", newConversation);
+      logger.debug("Conversation created successfully:", newConversation);
 
     return newConversation;
   } catch (err) {
-    logger.error(err);
+    logger.error("Error creating conversation:", err);
+    return null;
   }
-}
-
-module.exports = createConversation;
+};
