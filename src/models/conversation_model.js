@@ -1,33 +1,47 @@
-const { required } = require("joi");
 const mongoose = require("mongoose");
 
 module.exports = mongoose.model(
   "Conversations",
   new mongoose.Schema({
-    type: ["direct", "group"],
+    type: {
+      type: String,
+      enum: ["direct", "group"],
+      required: true,
+    },
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
       default: null,
     },
-    participants: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        validate: {
+    participants: {
+      type: [mongoose.Schema.Types.ObjectId], 
+      required: true,
+      validate: [
+        {
           validator: function (value) {
-            return value.length >= 2 ? value : false;
+            return Array.isArray(value) && value.length >= 2;
           },
-          message: "participants can not be less than two",
+          message: "Participants must include at least two IDs.",
         },
-      },
-    ],
+        {
+          validator: function (value) {
+            return new Set(value.map(String)).size >= 2;
+          },
+          message: "Participants must contain at least two unique IDs.",
+        },
+      ],
+    },
     date: {
       type: Date,
-      default: Date.now(),
+      default: Date.now,
     },
-    upDatedAt: { default: new Date(), type: Date },
-
-    isDeleted: { type: Boolean, default: false },
+    updatedAt: {
+      type: Date,
+      default: new Date(),
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   })
 );
