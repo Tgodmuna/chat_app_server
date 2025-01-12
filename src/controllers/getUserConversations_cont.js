@@ -10,19 +10,19 @@ const logger = require("../../logger");
  * @returns {Promise<Conversation[]>} - An array of conversation objects.
  * @throws {Error} - If the provided participant ID is not a valid MongoDB ObjectID.
  */
-async function retrieveUSerConversations(participant) {
+async function retrieveUserConversations(participant) {
   try {
-    if (participant && isValidObjectId(participant)) {
-      logger.error("the provided parameter expects to be a valid mongo objectID");
-      throw new Error("not a valid database id");
+    if (!participant || !isValidObjectId(participant)) {
+      logger.error("The provided parameter expects to be a valid MongoDB ObjectID");
+      throw new Error("Not a valid database ID");
     }
 
-    const conversations = await CONVERSATION.find({ participant })
-      .sort({ upDateAt: -1 })
-      .populate("lastMessage")
+    const conversations = await CONVERSATION.find({ participants: participant })
+      .sort({ updatedAt: -1 })
+      .populate(["participants", "lastMessage"])
       .exec();
 
-    logger.info("conversations successfully returned");
+    logger.info("Conversations successfully returned");
     return conversations;
   } catch (err) {
     logger.error(err);
@@ -30,4 +30,4 @@ async function retrieveUSerConversations(participant) {
   }
 }
 
-module.exports = retrieveUSerConversations;
+module.exports = retrieveUserConversations;
