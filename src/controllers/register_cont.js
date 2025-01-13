@@ -30,7 +30,7 @@ const register = async (body) => {
     location,
     gender,
     status,
-    role,
+    role: role && role,
   });
 
   await newUser.save();
