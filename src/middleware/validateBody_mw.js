@@ -10,8 +10,9 @@ module.exports = function validatebody(req, res, next) {
 
   if (error) {
     logger.error("validation failed", error);
-    return res.status(400).send(error.details[0].message);
+    return res.status(400).json(error.message);
   }
+  logger.info("request body validated, proceeding to registration........");
   next();
 };
 
@@ -34,4 +35,5 @@ const bodySchema = joi.object({
   gender: joi.string().valid("male", "female").required(),
   status: joi.string(),
   role: joi.string().valid("admin", "user").required(),
+  username: joi.string().min(4).required(),
 });
