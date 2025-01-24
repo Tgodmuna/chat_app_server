@@ -52,13 +52,13 @@ This is the server-side implementation of a chat application. It handles user co
 - `POST /api/auth/sign-in` - Authenticate a user
 - `POST /api/auth/logout` - Logout a user
 - `GET /api/auth/me` - Get the currently authenticated user's profile
-- `GET /api/users/details/:id` - Get user profile by ID
-- `PUT /api/users/update/:id` - Update user profile by ID
-- `POST /api/users/profile/upload` - Upload user profile picture
-- `GET /api/users/profile/pic` - Get user profile picture
-- `GET /api/users/friends_list` - Get user friend list
-- `PATCH /api/users/friend_list/unfriend/:friend_id` - Remove a friend from the list
-- `GET /api/users/friend_requests` - Get user friend requests
+- `GET /api/user/details/:id` - Get user profile by ID
+- `PUT /api/user/update/:id` - Update user profile by ID
+- `POST /api/user/profile/upload` - Upload user profile picture
+- `GET /api/user/profile/pic` - Get user profile picture
+- `GET /api/user/friends_list` - Get user friend list
+- `PATCH /api/user/friend_list/unfriend/:friend_id` - Remove a friend from the list
+- `GET /api/user/friend_requests` - Get user friend requests
 - `POST /api/friend/request` - Send a friend request
 - `POST /api/friend/accept` - Accept a friend request
 - `POST /api/friend/block-user` - Block a user
