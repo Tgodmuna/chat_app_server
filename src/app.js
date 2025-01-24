@@ -20,7 +20,7 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", require("./routes/auth_route"));
-app.use("/api/users", verifyToken_mw, authorisation_mw, require("./routes/user_route"));
+app.use("/api/user", verifyToken_mw, authorisation_mw, require("./routes/user_route"));
 app.use("/api/friend", verifyToken_mw, authorisation_mw, require("./routes/friend_route"));
 app.use("/api/messages", verifyToken_mw, authorisation_mw, require("../src/routes/message_route"));
 app.use(
