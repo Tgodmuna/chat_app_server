@@ -8,6 +8,7 @@ This is the server-side implementation of a chat application. It handles user co
 - Real-time messaging
 - Message history storage
 - User presence tracking
+- Friendship management
 
 ## Technologies Used
 
@@ -21,7 +22,7 @@ This is the server-side implementation of a chat application. It handles user co
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/yourusername/chat_app_server.git
+    git clone https://github.com/Tgodmuna/chat_app_server.git
     ```
 
 2. Navigate to the project directory:
@@ -48,10 +49,15 @@ This is the server-side implementation of a chat application. It handles user co
 
 ## API Endpoints
 
+### User Authentication and Authorization
+
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/sign-in` - Authenticate a user
 - `POST /api/auth/logout` - Logout a user
 - `GET /api/auth/me` - Get the currently authenticated user's profile
+
+### User Management
+
 - `GET /api/user/details/:id` - Get user profile by ID
 - `PUT /api/user/update/:id` - Update user profile by ID
 - `POST /api/user/profile/upload` - Upload user profile picture
@@ -59,14 +65,23 @@ This is the server-side implementation of a chat application. It handles user co
 - `GET /api/user/friends_list` - Get user friend list
 - `PATCH /api/user/friend_list/unfriend/:friend_id` - Remove a friend from the list
 - `GET /api/user/friend_requests` - Get user friend requests
+
+### Friendship Management
+
 - `POST /api/friend/request` - Send a friend request
 - `POST /api/friend/accept` - Accept a friend request
 - `POST /api/friend/block-user` - Block a user
 - `PATCH /api/friend/rejected` - Reject a friend request
-- `GET /api/messages/Message/:conversationID` - Get messages for a conversation
+
+### Messaging
+
+- `GET /api/messages/message/:conversationID` - Get messages for a conversation
 - `PATCH /api/messages/mark-read/:messageID/:conversationID` - Mark a message as read
 - `PATCH /api/messages/mark-read/all/:conversationID` - Mark all messages as read
 - `DELETE /api/messages/delete-message/:messageID` - Delete a message
+
+### Conversations
+
 - `GET /api/conversations/conversations` - Get all conversations user is involved in
 - `DELETE /api/conversations/delete-conversation/:conversationID` - Delete a conversation
 
