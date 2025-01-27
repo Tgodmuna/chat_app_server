@@ -8,6 +8,7 @@ const validateToken = require("./validateToken");
 const deliverMessage = require("./deliverMessage");
 const handleNewMessage = require("./handleNewMessage");
 const eventEmitter = new EventEmitter();
+const url = require("node:url");
 
 function WebSocketServer(wss) {
   const ActiveConnections = new Map();
@@ -15,9 +16,11 @@ function WebSocketServer(wss) {
   //websocket connection
   wss.on("connection", (socket, req) => {
     try {
-      const token = req.headers["x-auth-token"];
-      const decoded = validateToken(token);
-
+      const query = url.parse(req.url, true).query;
+      if (typeof query.token !== "string") {
+        throw new Error("Invalid token");
+      }
+      const decoded = validateToken(query.token);
       const userID = decoded._id;
 
       ActiveConnections.set(userID, socket);
