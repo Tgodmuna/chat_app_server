@@ -11,11 +11,11 @@ const router = require("express").Router();
 router.get(
   "/conversations",
   tryCatch_mw(async (req, res) => {
-    const userID = req.user._id;
+    const userID = req.user._id; //user property was included in the request object by verifytoken middleware after some successful verfication.
 
-    const conversation = await retrieveUSerConversations(userID);
+    const conversationList = await retrieveUSerConversations(userID);
 
-    return res.status(200).json([conversation]);
+    return res.status(200).json([conversationList]);
   })
 );
 
