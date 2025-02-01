@@ -57,8 +57,29 @@ router.post(
   })
 );
 
+//get all user friend request
+router.get(
+  "/friend-requests",
+  tryCatch_mw(async (req, res) => {
+    //extract user id from the request object injected by middlewares(verify token,authorisation)
+
+    const user = await USER.findById(req.user._id);
+    if (!user) return res.status(404).send("not a valid user");
+
+    if (user.friendRequestList.length !== 0) {
+      let AllRequest = await user.populate({
+        path: "friendRequestList",
+        select: "-password -friendRequestList -updatedAt -createdAt -role",
+      });
+      return res.status(200).json([AllRequest]);
+    } else {
+      return res.status(200).json({ message: "list is empty", list: user.friendRequestList });
+    }
+  })
+);
+
 //accept route
-router.post(
+router.put(
   "/accept",
   tryCatch_mw(async (req, res) => {
     const { requesterID } = req.body;
@@ -85,9 +106,8 @@ router.post(
     );
 
     //update the both requester and recipient friend list.
-    await USER.findOneAndUpdate({ _id: recipientID }, { friends: { $push: requesterID } });
-
-    await USER.findOneAndUpdate({ _id: requesterID }, { friends: { $push: { recipientID } } });
+    await USER.findOneAndUpdate({ _id: recipientID }, { $push: { friends: requesterID } });
+    await USER.findOneAndUpdate({ _id: requesterID }, { $push: { friends: recipientID } });
 
     eventEmitter.emit("friendRequestAccepted", recipientID);
 
@@ -96,8 +116,35 @@ router.post(
   })
 );
 
+//reject route
+router.put(
+  "/rejected",
+  tryCatch_mw(async (req, res) => {
+    const { requesterID } = req.body;
+    const recipientID = req.user._id;
+
+    //modify the relationship.
+    const friendship = await FRIENDSHIP.findOne({
+      $or: [
+        { requester: requesterID, recipient: recipientID, status: "pending" },
+        { requester: recipientID, recipient: requesterID, status: "pending" },
+      ],
+    });
+
+    //modify the user friend request list.
+    await USER.findOneAndUpdate(
+      { _id: recipientID },
+      { $pull: { friendRequestList: requesterID } }
+    );
+    //notify the requester that their request was rejected.
+    eventEmitter.emit("friendRequestRejected", requesterID);
+
+    return res.status(200).send("friendship request rejected");
+  })
+);
+
 //block route
-router.post(
+router.put(
   "block-user",
   tryCatch_mw(async (req, res) => {
     const { userID_to_block } = req.body;
@@ -123,33 +170,6 @@ router.post(
     await USER.findOneAndUpdate({ _id: userID_to_block }, { friends: { $pull: { userID } } });
 
     return res.status(200).send("blocked user successful");
-  })
-);
-
-//reject route
-router.patch(
-  "rejected",
-  tryCatch_mw(async (req, res) => {
-    const { requesterID } = req.body;
-    const recipientID = req.user._id;
-
-    //modify the relationship.
-    const friendship = await FRIENDSHIP.findOne({
-      $or: [
-        { requester: requesterID, recipient: recipientID, status: "pending" },
-        { requester: recipientID, recipient: requesterID, status: "pending" },
-      ],
-    });
-
-    //modify the user friend request list.
-    await USER.findOneAndUpdate(
-      { _id: recipientID },
-      { $pull: { friendRequestList: requesterID } }
-    );
-    //notify the requester that their request was rejected.
-    eventEmitter.emit("friendRequestRejected", requesterID);
-
-    return res.status(200).send("friendship request rejected");
   })
 );
 
