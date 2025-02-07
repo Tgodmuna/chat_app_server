@@ -92,14 +92,14 @@ router.get(
   tryCatch_mw(async (req, res) => {
     const user = await USER.findOne({ _id: req.user._id });
 
-    //get all the user's friendlist
-    let friends = _.pick(user?.populate("friends"), [
-      "name,phone,location,gender,status,profilePicture,bio,interest",
-      "isOnline",
-      "lastSeen",
-    ]);
+    //check if the friendlist is not empty
+    if (user.friends.length === 0)
+      return res.status(200).json({ message: "empty friendlist", data: [] });
 
-    return res.status(200).json({ message: "retreived successfully", data: friends });
+    const populatedUser = await user.populate("friends", "-password");
+    const { friends } = populatedUser;
+
+    return res.status(200).json({ message: "retrieved successfully", data: friends });
   })
 );
 
