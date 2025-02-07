@@ -19,8 +19,18 @@ async function retrieveUserConversations(participant) {
 
     const conversations = await CONVERSATION.find({ participants: participant })
       .sort({ updatedAt: -1 })
-      .populate(["participants", "lastMessage"])
+      .populate({
+        path: "participants",
+        model: "User",
+        select: ["-password -friends status"],
+      })
+      .populate("lastMessage")
       .exec();
+
+    if (!conversations) {
+      logger.error("Conversation not found");
+      return res.status(404).send("Conversation not found");
+    }
 
     logger.info("Conversations successfully returned");
     return conversations;
