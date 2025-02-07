@@ -66,6 +66,11 @@ const handleNewMessage = async (userID, recipientID, content, type, ActiveConnec
   if (ActiveConnections.has(recipientID)) {
     const clientSocket = ActiveConnections.get(recipientID);
 
+    if (!clientSocket) {
+      console.log("internal error,no client socket found:");
+      return;
+    }
+
     //fecth the saved messsage
     const persistedMessage = await message_model.findById(persistedMessageID);
     clientSocket.send(JSON.stringify(persistedMessage));
