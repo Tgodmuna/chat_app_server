@@ -61,6 +61,8 @@ function WebSocketServer(wss) {
       },
       ActiveConnections
     );
+
+    //remember to send an email reminder
   });
 
   eventEmitter.on("friendRequestAccepted", (requesterID) => {
