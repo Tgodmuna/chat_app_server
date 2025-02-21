@@ -12,11 +12,26 @@ const { eventEmitter } = require("../util/webSocket");
  * @param {string} recipientID - The ID of the recipient receiving the message.
  * @param {string} content - The content of the message being sent.
  * @param {string} type - The type of the conversation (e.g., "text", "image").
+ * @param {number} messageID - manually created ID for each message.
  * @param {Object} ActiveConnections - An object representing the active connections of users.
  * @returns {Promise<void>} A promise that resolves when the message handling process is complete.
  */
 
-const handleNewMessage = async (userID, recipientID, content, type, ActiveConnections) => {
+const handleNewMessage = async (
+  messageID,
+  userID,
+  recipientID,
+  content,
+  type,
+  ActiveConnections
+) => {
+  console.log("all the passed arguement to handleNewMessage:", {
+    userID,
+    recipientID,
+    content,
+    type,
+    messageID,
+  });
   try {
     // Step 1: Persist or retrieve an existing conversation
     const conversation = await createConversation([userID, recipientID], type);
@@ -30,25 +45,25 @@ const handleNewMessage = async (userID, recipientID, content, type, ActiveConnec
     const newMessage = {
       sender: userID,
       content,
-      event: "newMessage",
       receiver: recipientID,
       read: false,
       delivered: false,
       createdAt: Date.now(),
       conversationID: conversation_ID,
+      messageID,
     };
 
     //Check if recipient is online Deliver real-time message
     if (ActiveConnections.has(recipientID)) {
       const deliverySuccess = deliverMessage(
         recipientID,
-        { newMessage, event: "newMessage", code: 200 },
+        { ...newMessage, event: "newMessage", code: 200 },
         ActiveConnections
       );
 
       if (deliverySuccess) {
-        const messageID = (
-          await saveMessage(content, userID, recipientID, conversation_ID, false, true)
+        const MessageID = (
+          await saveMessage(content, userID, recipientID, conversation_ID, false, true, messageID)
         ).persistedMessageID;
 
         //notify the sender about their success message delivery
@@ -58,7 +73,7 @@ const handleNewMessage = async (userID, recipientID, content, type, ActiveConnec
             event: "messageDelivered",
             message: "Message successfully sent and delivered!",
             code: 200,
-            messageID,
+            MessageID,
           },
           ActiveConnections
         );
@@ -117,7 +132,7 @@ const handleNewMessage = async (userID, recipientID, content, type, ActiveConnec
       }
     });
   } catch (error) {
-    console.error("Error handling new message:", error.message);
+    console.error("Error handling new message:", error);
   }
 };
 
