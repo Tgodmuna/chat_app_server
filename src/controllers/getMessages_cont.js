@@ -10,7 +10,7 @@ const MESSAGE = require("../models/message_model");
  * @param {number} [limit=20] - The number of messages to retrieve per page (default is 20).
  * @returns {Promise<Message[]>} - An array of message objects for the specified conversation.
  */
-const retrieveSpecificConvMsg = async (conversationID, page = 1, limit = 20) => {
+const retrieveSpecificConvMsg = async (conversationID, page = 1, limit = 10) => {
   if (!conversationID && !page && !limit) {
     logger.error("parameters are undefined");
     throw new Error("no parameters provided");
@@ -18,14 +18,36 @@ const retrieveSpecificConvMsg = async (conversationID, page = 1, limit = 20) => 
 
   if (typeof page !== "number" && typeof limit !== "number") {
     logger.error("page and limit are not of type NUMBER");
-    throw new Error("either LIMIT or PAGE is a string and it expects a number");
+    logger.info("converting page and limits to number type.......");
+
+    let convertedPage, ConvertedLimit;
+    convertedPage = parseInt(page);
+    ConvertedLimit = parseInt(limit);
+
+    logger.info("converted to number type", { convertedPage, ConvertedLimit });
+
+    const messages = await MESSAGE.find({ conversationID })
+      .populate({
+        path: "sender receiver",
+        select:
+          "-password -email -__v -interests -role -bio -profilePicture  -location -friend -age -friendRequestList -phone",
+        model: "User",
+      })
+      .sort({ createdAt: -1 })
+      .skip((convertedPage - 1) * ConvertedLimit)
+      .limit(limit)
+      .exec();
+
+    return messages.reverse();
   }
 
-  return await MESSAGE.find({ conversationID })
+  const messages = await MESSAGE.find({ conversationID })
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
     .exec();
+
+  return messages.reverse();
 };
 
 module.exports = retrieveSpecificConvMsg;
