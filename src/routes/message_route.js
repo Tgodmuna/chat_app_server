@@ -5,20 +5,28 @@ const SetMessageStatus = require("../controllers/setMessageStatus");
 const deleteMessage = require("../controllers/deleteMessage_cont");
 const MESSAGE = require("../models/message_model");
 const CONVERSATION = require("../models/conversation_model");
+const logger = require("../../logger");
+const { cli } = require("winston/lib/winston/config");
 
 const router = require("express").Router();
 
 //get message for a conversation
 router.get(
-  "/Message/:conversationID",
+  "/:conversationID",
   tryCatch_mw(async (req, res) => {
     const conversationID = req.params.conversationID;
     const { limit, page } = req.query;
-    const userID = req.user_id;
+
+    //handle the situation where there is no conversationID,
+    //this actually means it is a new conversation.
+    if (!conversationID) {
+      res.status(204).json({ message: "no old message", data: [] });
+      return;
+    }
 
     const messages = await retrieveSpecificConvMsg(conversationID, page, limit);
-
-    return res.status(200).json([messages]);
+    logger.info("returned conversation messages successfully");
+    return res.status(200).json(messages);
   })
 );
 
