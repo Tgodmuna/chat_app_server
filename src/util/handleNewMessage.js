@@ -2,6 +2,7 @@ const message_model = require("../models/message_model");
 const deliverMessage = require("./deliverMessage");
 const createConversation = require("./logConversation");
 const saveMessage = require("./logMessage");
+const { eventEmitter } = require("../util/webSocket");
 
 /**
  * Handles the process of receiving a new message, including delivering the message in real-time if the recipient is online,
@@ -16,77 +17,107 @@ const saveMessage = require("./logMessage");
  */
 
 const handleNewMessage = async (userID, recipientID, content, type, ActiveConnections) => {
-  // Persist the conversation
-  const conversation = await createConversation([userID, recipientID], type);
-
-  if (!conversation) {
-    throw new Error("Failed to create conversation,something went wrong");
-  }
-
-  const conversation_ID = conversation?._id;
-
-  // Deliver real-time message if recipient is online
-  if (
-    deliverMessage(
-      recipientID,
-      {
-        sender: userID,
-        content: content,
-        event: "received new message",
-      },
-      ActiveConnections
-    )
-  ) {
-    // Notify the sender their message was sent
-    deliverMessage(
-      userID,
-      {
-        event: "messageSent&Delivered",
-        message: "Message successfully sent and delivered!",
-        code: 200,
-      },
-      ActiveConnections
-    );
-
-    //persist the message also
-    await saveMessage(content, userID, recipientID, conversation_ID);
-
-    return;
-  }
-
-  //if message failed to deliver because user is not online, save it to the DB
-  const { persistedMessageID } = await saveMessage(content, userID, recipientID, conversation_ID);
-  deliverMessage(
-    userID,
-    { event: "Sent&NotDelivered", message: "sent and not delivered", code: 205 },
-    ActiveConnections
-  );
-
-  //deliver the message if the user comesback online.
-  if (ActiveConnections.has(recipientID)) {
-    const clientSocket = ActiveConnections.get(recipientID);
-
-    if (!clientSocket) {
-      console.log("internal error,no client socket found:");
-      return;
+  try {
+    // Step 1: Persist or retrieve an existing conversation
+    const conversation = await createConversation([userID, recipientID], type);
+    if (!conversation) {
+      throw new Error("Failed to create conversation, something went wrong");
     }
 
-    //fecth the saved messsage
-    const persistedMessage = await message_model.findById(persistedMessageID);
-    clientSocket.send(JSON.stringify(persistedMessage));
+    const conversation_ID = conversation._id;
 
-    //notify the sender their message has been delivered
+    // Step 2: Prepare message payload
+    const newMessage = {
+      sender: userID,
+      content,
+      event: "newMessage",
+      receiver: recipientID,
+      read: false,
+      delivered: false,
+      createdAt: Date.now(),
+      conversationID: conversation_ID,
+    };
+
+    //Check if recipient is online Deliver real-time message
+    if (ActiveConnections.has(recipientID)) {
+      const deliverySuccess = deliverMessage(
+        recipientID,
+        { newMessage, event: "newMessage", code: 200 },
+        ActiveConnections
+      );
+
+      if (deliverySuccess) {
+        const messageID = (
+          await saveMessage(content, userID, recipientID, conversation_ID, false, true)
+        ).persistedMessageID;
+
+        //notify the sender about their success message delivery
+        deliverMessage(
+          userID,
+          {
+            event: "messageDelivered",
+            message: "Message successfully sent and delivered!",
+            code: 200,
+            messageID,
+          },
+          ActiveConnections
+        );
+
+        return;
+      }
+    }
+
+    // Save message as "Sent but Not Delivered" (Recipient Offline)
+    const { persistedMessageID } = await saveMessage(
+      content,
+      userID,
+      recipientID,
+      conversation_ID,
+      false,
+      false
+    );
+
     deliverMessage(
       userID,
       {
-        event: "Delivered",
-        message: `Message delivered to-${userID}`,
-        code: 200,
+        event: "messageNotDelivered",
+        message: "Message sent but not delivered",
+        code: 205,
+        messageID: persistedMessageID,
       },
       ActiveConnections
     );
 
-    return;
+    //  Listen for recipient coming online to deliver the pending message
+    eventEmitter.on("isBackOnline", async (onlineUserID) => {
+      if (onlineUserID === recipientID) {
+        const clientSocket = ActiveConnections.get(recipientID);
+        if (!clientSocket) return;
+
+        // Fetch and send pending messages
+        const pendingMessages = await message_model.find({ recipientID, delivered: false });
+        pendingMessages.forEach(async (message) => {
+          clientSocket.send(JSON.stringify(message));
+
+          // Mark as delivered in the database
+          await message_model.findByIdAndUpdate(message._id, { delivered: true });
+
+          // Notify the sender about delivery
+          deliverMessage(
+            userID,
+            {
+              event: "messageDelivered",
+              message: "Message has been delivered!",
+              code: 200,
+              messageID: message._id,
+            },
+            ActiveConnections
+          );
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error handling new message:", error.message);
   }
 };
 
