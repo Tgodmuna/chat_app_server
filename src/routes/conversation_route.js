@@ -1,25 +1,48 @@
 const CONVERSATION = require("../models/conversation_model");
 const MESSAGE = require("../models/message_model");
-const retrieveUSerConversations = require("../controllers/getUserConversations_cont");
+const retrieveUserConversations = require("../controllers/getUserConversations_cont");
 
 const tryCatch_mw = require("../middleware/tryCatch_mw");
 const logger = require("../../logger");
 
 const router = require("express").Router();
 
-//route for getting all conversations user involved in
+// Route for getting all conversations user is involved in
 router.get(
   "/conversations",
   tryCatch_mw(async (req, res) => {
-    const userID = req.user._id; //user property was included in the request object by verifytoken middleware after some successful verfication.
+    const userID = req.user._id;
 
-    const conversationList = await retrieveUSerConversations(userID);
+    const conversationList = await retrieveUserConversations(userID);
 
-    return res.status(200).json([conversationList]);
+    return res.status(200).json(conversationList);
   })
 );
 
-//delete a conversation
+// Route for getting a specific conversation with populated participants
+router.get(
+  "/conversation/:conversationID",
+  tryCatch_mw(async (req, res) => {
+    const { conversationID } = req.params;
+
+    if (!conversationID) {
+      logger.error("conversationID not provided");
+      return res.status(400).send("conversationID not provided");
+    }
+
+    const conversation = await CONVERSATION.findById(conversationID).populate("participants");
+
+    if (!conversation) {
+      logger.error("Conversation not found");
+      return res.status(404).send("Conversation not found");
+    }
+    console.log("conversation:", conversation);
+
+    return res.status(200).json(conversation);
+  })
+);
+
+// Delete a conversation
 router.delete(
   "/delete-conversation/:conversationID",
   tryCatch_mw(async (req, res) => {
@@ -27,17 +50,15 @@ router.delete(
 
     if (!conversationID) {
       logger.error("conversationID not provided");
-      return;
+      return res.status(400).send("conversationID not provided");
     }
 
     await CONVERSATION.findByIdAndDelete(conversationID);
-    await MESSAGE.deleteMany({
-      conversationID,
-    });
+    await MESSAGE.deleteMany({ conversationID });
 
-    logger.info("conversation deleted");
+    logger.info("Conversation deleted");
 
-    return res.status(200).send("conversation deleted successful");
+    return res.status(200).send("Conversation deleted successfully");
   })
 );
 
