@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const register = async (body) => {
   if (!body) return null;
 
-  let { email, password, name, phone, location, gender, age, status, role } = body;
+  let { username, email, password, name, phone, location, gender, age, status, role } = body;
 
   // Debug input
   logger.debug("Received body:", body);
@@ -22,6 +22,7 @@ const register = async (body) => {
   password = await bcrypt.hash(password, salt);
 
   let newUser = new USER({
+    username,
     name,
     email,
     phone,
