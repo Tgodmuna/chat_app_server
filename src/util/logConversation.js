@@ -2,7 +2,7 @@
 const logger = require("../../logger");
 const CONVERSATIONS = require("../models/conversation_model");
 
-module.exports = async function createConversation(participants, message, type) {
+module.exports = async function createConversation(participants, type) {
   if (!Array.isArray(participants)) {
     process.env.NODE_ENV === "development" && logger.debug("participants must be an array:");
 
