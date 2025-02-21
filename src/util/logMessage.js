@@ -11,12 +11,14 @@ const CONVERSATION = require("../models/conversation_model");
  * @param {mongoose.Types.ObjectId} sender - The ID of the sender.
  * @param {mongoose.Types.ObjectId} receiver - The ID of the receiver.
  * @param {mongoose.Types.ObjectId} conversationID - The ID of the conversation.
+  * @param {number} ID - manually created ID for each message.
+
  * @returns {Promise<Object>} An object containing the updated conversation and the persisted message ID.
  * @throws Will throw an error if the message cannot be saved or the conversation cannot be updated.
  */
 const mongoose = require("mongoose");
 
-async function saveMessage(content, sender, receiver, conversationID) {
+async function saveMessage(content, sender, receiver, conversationID, read, delivered, ID) {
   if (!content || !sender || !receiver || !conversationID) {
     throw new Error("All parameters must be provided and valid.");
   }
@@ -35,6 +37,9 @@ async function saveMessage(content, sender, receiver, conversationID) {
       sender,
       receiver,
       conversationID,
+      read,
+      delivered,
+      ID,
     });
 
     if (!message) throw new Error("unable to save message");
