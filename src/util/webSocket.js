@@ -12,10 +12,10 @@ function WebSocketServer(wss) {
   const ActiveConnections = new Map();
 
   //websocket connection
-  wss.on("connection", (socket, req) => {
+  wss.on("connection", async (socket, req) => {
     try {
       const query = url.parse(req.url, true).query;
-      if (typeof query.token !== "string") {
+      if (typeof query.token !== "string" || !query.token) {
         throw new Error("Invalid token type");
       }
       const decoded = validateToken(query.token);
@@ -25,15 +25,13 @@ function WebSocketServer(wss) {
       console.log("user connected:", userID);
 
       logger.info(`User ${userID} connected.`);
-      eventEmitter.emit("userOnline", userID);
+      eventEmitter.emit("userOnline", userID, socket);
       eventEmitter.emit("isBackOnline", userID);
 
       socket.on("message", async (data) => {
         try {
           const { recipientID, content, type, messageID, event } = JSON.parse(data);
           console.log("received socket data:", JSON.parse(data));
-
-          const DATA = JSON.parse(data);
 
           switch (event) {
             case "messageRead":
@@ -46,17 +44,10 @@ function WebSocketServer(wss) {
                 return;
               }
 
-              console.log("found a document:", messageToUpdate);
-              console.log("proceeding to modify........");
-
               messageToUpdate.read = true;
               await messageToUpdate.save();
 
               const updatedMessage = await message_model.findOne({ ID: messageID });
-
-              console.log("modified successfully", updatedMessage);
-
-              console.log("this is recipient to recieve the data:", recipientID);
 
               // Send back the updated message
               const success = deliverMessage(
@@ -98,10 +89,10 @@ function WebSocketServer(wss) {
         }
       });
 
-      socket.on("close", () => {
+      socket.on("close", async () => {
         ActiveConnections.delete(userID);
         logger.info(`User ${userID} disconnected.`);
-        eventEmitter.emit("userOffline", userID);
+        eventEmitter.emit("userOffline", userID, socket);
       });
     } catch (err) {
       socket.send(JSON.stringify({ event: "error", message: err.message }));
@@ -111,21 +102,31 @@ function WebSocketServer(wss) {
   });
 
   //event for userOnline presence update
-  eventEmitter.on("userOnline", async (userID) => {
+  eventEmitter.on("userOnline", async (userID, socket) => {
     try {
-      await user_model.findOneAndUpdate({ _id: userID }, { $set: { isOnline: true } });
+      let onlineUser = await user_model
+        .findOneAndUpdate({ _id: userID }, { $set: { isOnline: true } }, { new: true })
+        .select("isOnline  name username _id");
+
+      //respond with the updated document
+      socket.send(JSON.stringify({ event: "onLine", onlineUser }));
     } catch (err) {
       logger.error(`Error updating user ${userID} online status:`, err);
     }
   });
 
   //event for userOffline presence update
-  eventEmitter.on("userOffline", async (userID) => {
+  eventEmitter.on("userOffline", async (userID, socket) => {
     try {
-      await user_model.findOneAndUpdate(
-        { _id: userID },
-        { $set: { isOnline: false, lastSeen: Date.now() } }
-      );
+      const offlineUser = await user_model
+        .findOneAndUpdate(
+          { _id: userID },
+          { $set: { isOnline: false, lastSeen: Date.now() } },
+          { new: true }
+        )
+        .select("isOnline name username _id");
+
+      socket.send(JSON.stringify({ event: "onLine", offlineUser }));
     } catch (err) {
       logger.error(`Error updating user ${userID} online status:`, err);
     }

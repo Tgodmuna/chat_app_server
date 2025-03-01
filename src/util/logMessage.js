@@ -19,7 +19,7 @@ const CONVERSATION = require("../models/conversation_model");
 const mongoose = require("mongoose");
 
 async function saveMessage(content, sender, receiver, conversationID, read, delivered, ID) {
-  if (!content || !sender || !receiver || !conversationID) {
+  if (!content || !sender || !receiver || !conversationID ||!ID) {
     throw new Error("All parameters must be provided and valid.");
   }
 
@@ -30,6 +30,15 @@ async function saveMessage(content, sender, receiver, conversationID, read, deli
   ) {
     throw new Error("Invalid ObjectId provided.");
   }
+  console.log("all message fields to be saved:", {
+    content,
+    sender,
+    receiver,
+    conversationID,
+    read,
+    delivered,
+    ID,
+  });
 
   try {
     const message = new MESSAGE({
