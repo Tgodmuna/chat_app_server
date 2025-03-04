@@ -69,12 +69,13 @@ router.post("/logout", [
     let blacklisted = await new BlackList({ token: req.header("x-auth-token") }).save();
 
     if (!blacklisted) {
-      logger.error("error in blacklisting a token");
+      logger.error("error in blacklisting a token", blacklisted);
+      res.status(500).send("error blacklisting a token");
       return;
     }
 
     logger.info("user logged out");
-    return res.status(200).send("logout successful");
+    return res.status(200).json({ message: "logout successful", isLogOut: true });
   }),
 ]);
 
